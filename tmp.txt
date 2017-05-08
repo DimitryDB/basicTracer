@@ -1,0 +1,121 @@
+618s 100 samples
+
+bvh - 107s - basic aab hit function
+
+210     s360
+
+New tests:
+434s BVH kensler box hit function
+2015s wo BVH
+4950s old BVH
+
++vec3(0,0.5*drand48()
+
+bascic box hit
+
+            double t0 = ffmin((bbmin[a] - r.origin()[a]) / r.direction()[a],
+                (bbmax[a] - r.origin()[a]) / r.direction()[a]);
+            double t1 = ffmin((bbmin[a] - r.origin()[a]) / r.direction()[a],
+                (bbmax[a] - r.origin()[a]) / r.direction()[a]);
+            tmin = ffmax(t0, tmin);
+            tmin = ffmin(t1, tmax);
+            if (tmax <= tmin)
+                return false;
+
+
+box hit pixar
+
+for (int a = 0;a < 3; ++a) {
+            double invD = 1.0 / r.direction()[a];
+            double t0 = (min()[a] - r.origin()[a])*invD;
+            double t1 = (max()[a] - r.origin()[a])*invD;
+            if (invD < 0.0)
+                std::swap(t0, t1);
+            tmin = t0 > tmin ? t0 : tmin;
+            tmax = t1 < tmax ? t1 : tmax;
+            if (tmax < tmin)
+                return false;
+        }
+        return true;
+
+
+
+pdf 
+
+double tmin, tmax, tymin, tymax, tzmin, tzmax;
+        tmin = (bounds[r.sign[0]].x() - r.orig.x()) * r.inv_direction.x();
+        tmax = (bounds[1 - r.sign[0]].x() - r.orig.x()) * r.inv_direction.x();
+        tymin = (bounds[r.sign[1]].y() - r.orig.y()) * r.inv_direction.y();
+        tymax = (bounds[1 - r.sign[1]].y() - r.orig.y()) *r.inv_direction.y();
+        if ((tmin > tymax) || (tymin > tmax))
+            return false;
+        if (tymin > tmin)
+            tmin = tymin;
+        if (tymax < tmax)
+            tmax = tymax;
+        tzmin = (bounds[r.sign[2]].z() - r.orig.z()) *r.inv_direction.z();
+        tzmax = (bounds[1 - r.sign[2]].z() - r.orig.z()) *r.inv_direction.z();
+        if ((tmin > tzmax) || (tzmin > tmax))
+            return false;
+        if (tzmin > tmin)
+            tmin = tzmin;
+        if (tzmax < tmax)
+            tmax = tzmax;
+        return ((tmin < t1) && (tmax > t0));
+
+
+
+
+
+			for (int j = ny-1; j >=0 ; --j) {
+		for (int i = 0; i < nx; ++i) {
+            vec3 col(0, 0, 0);
+            for (int s = 0; s < ns; ++s) {
+                double u = double(i+drand48()) / double(nx);
+                double v = double(j+drand48()) / double(ny);
+                ray r = cam.get_ray(u, v);
+                col += color(r, world,0);
+            }
+            col /= double(ns);
+            col = vec3(sqrt(col[0]), sqrt(col[1]), sqrt(col[2]));
+			int ir = int(255.99*col[0]);
+			int ig = int(255.99*col[1]);
+			int ib = int(255.99*col[2]);
+            sOut << ir << " " << ig << " " << ib << "\n";
+		}
+        system("CLS");
+        std::cout << "Progres: " <<  100.0-((double)j / ((double)ny / 100.0)) << "%\n";
+	}
+
+	std::cout << "Box: " << mainBox << "\n";
+    std::cout << "Size: " << mainBox.getSize() << "\n";
+    std::cout << "Area: " << mainBox.area() << "\n";
+    std::cout << "Max Axis: " << mainBox.longestAxis() << "\n";
+
+
+	// BVH OLD
+	bvh_node::bvh_node(hitable **l, int n, double time0, double time1) {
+    int axis = int(3 * drand48());
+    if (axis == 0)
+        qsort(l, n, sizeof(hitable*), bvh_node::box_x_compare);
+    else if (axis == 1)
+        qsort(l, n, sizeof(hitable*), bvh_node::box_y_compare);
+    else
+        qsort(l, n, sizeof(hitable*), bvh_node::box_z_compare);
+    if (n == 1) {
+        left = right = l[0];
+    }
+    else if (n == 2) {
+        left = l[0];
+        right = l[1];
+    }
+    else {
+        
+        left = new bvh_node(l, n / 2, time0, time1);
+        right = new bvh_node(l + n / 2, n - n / 2, time0, time1);
+    }
+    aabb box_left, box_right;
+    if (!left->bounding_box(time0,time1,box_left) || !right->bounding_box(time0,time1,box_right))
+        std::cerr << "no bounding box in bvh constructor\n";
+    box = aabb::surrounding_box(box_left, box_right);
+}
